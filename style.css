@@ -242,3 +242,24 @@ input:focus {
   opacity: 0.5;
   font-size: 0.75rem;
 }
+
+/* Keep all your original styles and add this: */
+
+.mode-selection label {
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.mode-selection input[type="radio"] {
+  margin: 0;
+  width: auto;
+  cursor: pointer;
+}
+
+/* Ensure the hidden input doesn't take up space */
+#p2-input.hidden {
+  display: none;
+}

@@ -10,7 +10,26 @@
     <div id="setup-overlay" class="overlay">
       <div class="setup-card">
         <h2>Tic Tac Toe</h2>
-        <p>Enter player names to begin</p>
+        <p>Select Game Mode</p>
+
+        <div
+          class="mode-selection"
+          style="
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+          "
+        >
+          <label style="cursor: pointer">
+            <input type="radio" name="game-mode" value="pvp" checked /> 2
+            Players
+          </label>
+          <label style="cursor: pointer">
+            <input type="radio" name="game-mode" value="pvc" /> Vs Machine
+          </label>
+        </div>
+
         <div class="input-group">
           <input
             type="text"
@@ -18,7 +37,6 @@
             placeholder="Player X Name"
             maxlength="15"
             autocomplete="off"
-            spellcheck="false"
           />
           <input
             type="text"
@@ -26,7 +44,6 @@
             placeholder="Player O Name"
             maxlength="15"
             autocomplete="off"
-            spellcheck="false"
           />
         </div>
         <p id="error-msg"></p>

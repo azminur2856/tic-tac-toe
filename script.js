@@ -11,7 +11,6 @@ const restartBtn = document.getElementById("restartBtn");
 const audioBtn = document.getElementById("audio-toggle");
 
 // --- AUDIO CONFIGURATION ---
-// These paths point to the 'assets' folder you created
 const sounds = {
   start: new Audio("assets/start.mp3"),
   moveX: new Audio("assets/moveX.mp3"),
@@ -26,6 +25,7 @@ let player2 = { name: "", score: 0 };
 let currentPlayer = "X";
 let gameState = ["", "", "", "", "", "", "", "", ""];
 let gameActive = true;
+let gameMode = "pvp"; // 'pvp' or 'pvc'
 
 const winningConditions = [
   [0, 1, 2],
@@ -41,9 +41,7 @@ const winningConditions = [
 function playSound(name) {
   if (!isMuted && sounds[name]) {
     sounds[name].currentTime = 0;
-    sounds[name].play().catch(() => {
-      console.log("Audio playback blocked or failed for:", name);
-    });
+    sounds[name].play().catch(() => console.log("Audio blocked"));
   }
 }
 
@@ -53,26 +51,36 @@ audioBtn.addEventListener("click", () => {
 });
 
 // --- SETUP LOGIC ---
+document.querySelectorAll('input[name="game-mode"]').forEach((radio) => {
+  radio.addEventListener("change", (e) => {
+    gameMode = e.target.value;
+    if (gameMode === "pvc") {
+      p2Input.style.display = "none";
+      p2Input.value = "Machine";
+    } else {
+      p2Input.style.display = "block";
+      p2Input.value = "";
+    }
+  });
+});
+
 p1Input.addEventListener("keydown", (e) => {
   if (e.key === "Enter") {
     e.preventDefault();
     if (p1Input.value.trim() === "") {
       errorMsg.innerText = "Please enter Player X's name!";
-    } else {
-      errorMsg.innerText = "";
+    } else if (gameMode === "pvp") {
       p2Input.focus();
+    } else {
+      initGame();
     }
   }
 });
 
 p2Input.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") {
+  if (e.key === "Enter" && gameMode === "pvp") {
     e.preventDefault();
-    if (p2Input.value.trim() === "") {
-      errorMsg.innerText = "Please enter Player O's name!";
-    } else {
-      initGame();
-    }
+    initGame();
   }
 });
 
@@ -83,11 +91,7 @@ function initGame() {
   const n2 = p2Input.value.trim();
 
   if (!n1 || !n2) {
-    errorMsg.innerText = "Both names are required!";
-    return;
-  }
-  if (n1.toLowerCase() === n2.toLowerCase()) {
-    errorMsg.innerText = "Names must be unique!";
+    errorMsg.innerText = "Names are required!";
     return;
   }
 
@@ -108,18 +112,87 @@ function handleCellClick(e) {
   const index = e.target.getAttribute("data-index");
   if (gameState[index] !== "" || !gameActive) return;
 
-  // Plays X sound for Player X, O sound for Player O
-  if (currentPlayer === "X") {
-    playSound("moveX");
-  } else {
-    playSound("moveO");
+  // Human Move
+  executeMove(index);
+
+  // Machine Move logic (Calling the Advanced Minimax Move)
+  if (gameActive && gameMode === "pvc" && currentPlayer === "O") {
+    setTimeout(advancedCPUMove, 600);
   }
+}
+
+function executeMove(index) {
+  if (currentPlayer === "X") playSound("moveX");
+  else playSound("moveO");
 
   gameState[index] = currentPlayer;
-  e.target.innerText = currentPlayer;
-  e.target.classList.add(currentPlayer.toLowerCase());
+  const cell = document.querySelector(`[data-index="${index}"]`);
+  cell.innerText = currentPlayer;
+  cell.classList.add(currentPlayer.toLowerCase());
 
   checkResult();
+}
+
+// --- UNBEATABLE MINIMAX ALGORITHM ---
+function advancedCPUMove() {
+  let bestScore = -Infinity;
+  let move;
+  for (let i = 0; i < 9; i++) {
+    if (gameState[i] === "") {
+      gameState[i] = "O";
+      let score = minimax(gameState, 0, false);
+      gameState[i] = "";
+      if (score > bestScore) {
+        bestScore = score;
+        move = i;
+      }
+    }
+  }
+  if (move !== undefined) executeMove(move);
+}
+
+function minimax(board, depth, isMaximizing) {
+  let result = checkWinnerRaw();
+  if (result === "O") return 10 - depth;
+  if (result === "X") return depth - 10;
+  if (!board.includes("")) return 0;
+
+  if (isMaximizing) {
+    let bestScore = -Infinity;
+    for (let i = 0; i < 9; i++) {
+      if (board[i] === "") {
+        board[i] = "O";
+        let score = minimax(board, depth + 1, false);
+        board[i] = "";
+        bestScore = Math.max(score, bestScore);
+      }
+    }
+    return bestScore;
+  } else {
+    let bestScore = Infinity;
+    for (let i = 0; i < 9; i++) {
+      if (board[i] === "") {
+        board[i] = "X";
+        let score = minimax(board, depth + 1, true);
+        board[i] = "";
+        bestScore = Math.min(score, bestScore);
+      }
+    }
+    return bestScore;
+  }
+}
+
+function checkWinnerRaw() {
+  for (let combo of winningConditions) {
+    if (
+      gameState[combo[0]] &&
+      gameState[combo[0]] === gameState[combo[1]] &&
+      gameState[combo[0]] === gameState[combo[2]]
+    ) {
+      return gameState[combo[0]];
+    }
+  }
+  return null;
 }
 
 function updateStatusText() {
