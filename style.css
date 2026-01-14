@@ -1,0 +1,159 @@
+:root {
+  --bg-gradient: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --text-color: #ffffff;
+  --x-color: #00f2fe;
+  --o-color: #fa709a;
+}
+
+body {
+  font-family: "Segoe UI", sans-serif;
+  background: var(--bg-gradient);
+  height: 100vh;
+  margin: 0;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: var(--text-color);
+}
+
+/* Entrance Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Overlay Styling */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+  backdrop-filter: blur(10px);
+}
+
+.setup-card {
+  background: var(--glass-bg);
+  padding: 40px;
+  border-radius: 20px;
+  border: 1px solid var(--glass-border);
+  text-align: center;
+  animation: fadeInUp 0.6s ease-out;
+}
+
+input {
+  display: block;
+  width: 250px;
+  padding: 12px;
+  margin: 15px auto;
+  border-radius: 8px;
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  font-size: 1rem;
+}
+
+/* Game Layout */
+.game-container {
+  animation: fadeInUp 0.8s ease-out;
+}
+
+.hidden {
+  display: none;
+}
+
+.score-tracker {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 30px;
+  margin-bottom: 20px;
+}
+
+.score-box {
+  text-align: center;
+  min-width: 100px;
+}
+
+.score-box span {
+  font-size: 0.9rem;
+  opacity: 0.7;
+  letter-spacing: 1px;
+}
+.score-box div {
+  font-size: 2.5rem;
+  font-weight: bold;
+}
+
+.game-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(15px);
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+  padding: 30px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  text-align: center;
+}
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(3, 100px);
+  gap: 15px;
+  margin: 20px 0;
+}
+
+.cell {
+  width: 100px;
+  height: 100px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 2.5rem;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.cell:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+.cell.x {
+  color: var(--x-color);
+  text-shadow: 0 0 15px var(--x-color);
+}
+.cell.o {
+  color: var(--o-color);
+  text-shadow: 0 0 15px var(--o-color);
+}
+
+button {
+  background: transparent;
+  border: 1px solid white;
+  color: white;
+  padding: 10px 25px;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+button:hover {
+  background: white;
+  color: #302b63;
+}
+
+.winner-cell {
+  background: rgba(255, 255, 255, 0.2) !important;
+  transform: scale(1.05);
+}
