@@ -11,19 +11,13 @@ const restartBtn = document.getElementById("restartBtn");
 const audioBtn = document.getElementById("audio-toggle");
 
 // --- AUDIO CONFIGURATION ---
+// These paths point to the 'assets' folder you created
 const sounds = {
-  start: new Audio(
-    "https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3"
-  ),
-  move: new Audio(
-    "https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3"
-  ),
-  win: new Audio(
-    "https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3"
-  ),
-  draw: new Audio(
-    "https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3"
-  ),
+  start: new Audio("assets/start.mp3"),
+  moveX: new Audio("assets/moveX.mp3"),
+  moveO: new Audio("assets/moveO.mp3"),
+  win: new Audio("assets/win.mp3"),
+  draw: new Audio("assets/draw.mp3"),
 };
 
 let isMuted = false;
@@ -44,21 +38,21 @@ const winningConditions = [
   [2, 4, 6],
 ];
 
-// Helper to play sounds
 function playSound(name) {
   if (!isMuted && sounds[name]) {
     sounds[name].currentTime = 0;
-    sounds[name].play().catch(() => {});
+    sounds[name].play().catch(() => {
+      console.log("Audio playback blocked or failed for:", name);
+    });
   }
 }
 
-// Audio Toggle Logic
 audioBtn.addEventListener("click", () => {
   isMuted = !isMuted;
   audioBtn.innerText = isMuted ? "🔇" : "🔊";
 });
 
-// --- FOCUS & ENTER KEY LOGIC ---
+// --- SETUP LOGIC ---
 p1Input.addEventListener("keydown", (e) => {
   if (e.key === "Enter") {
     e.preventDefault();
@@ -114,7 +108,13 @@ function handleCellClick(e) {
   const index = e.target.getAttribute("data-index");
   if (gameState[index] !== "" || !gameActive) return;
 
-  playSound("move");
+  // Plays X sound for Player X, O sound for Player O
+  if (currentPlayer === "X") {
+    playSound("moveX");
+  } else {
+    playSound("moveO");
+  }
+
   gameState[index] = currentPlayer;
   e.target.innerText = currentPlayer;
   e.target.classList.add(currentPlayer.toLowerCase());
