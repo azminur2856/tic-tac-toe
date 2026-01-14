@@ -8,126 +8,183 @@
 }
 
 body {
-  font-family: "Segoe UI", sans-serif;
+  font-family: "Segoe UI", system-ui, sans-serif;
   background: var(--bg-gradient);
   height: 100vh;
   margin: 0;
-  overflow: hidden;
   display: flex;
   justify-content: center;
   align-items: center;
   color: var(--text-color);
+  overflow: hidden;
 }
 
-/* Entrance Animations */
 @keyframes fadeInUp {
   from {
     opacity: 0;
-    transform: translateY(30px) scale(0.9);
+    transform: translateY(20px);
   }
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateY(0);
   }
 }
 
-/* Overlay Styling */
+/* Setup Screen */
 .overlay {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(15px);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 100;
-  backdrop-filter: blur(10px);
 }
 
 .setup-card {
   background: var(--glass-bg);
   padding: 40px;
-  border-radius: 20px;
+  border-radius: 24px;
   border: 1px solid var(--glass-border);
   text-align: center;
-  animation: fadeInUp 0.6s ease-out;
+  width: 340px;
+  animation: fadeInUp 0.5s ease-out;
 }
 
 input {
   display: block;
-  width: 250px;
+  width: 90%;
   padding: 12px;
-  margin: 15px auto;
-  border-radius: 8px;
+  margin: 10px auto;
+  border-radius: 12px;
   border: 1px solid var(--glass-border);
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.08);
   color: white;
   font-size: 1rem;
+  outline: none;
+  transition: 0.3s;
 }
 
-/* Game Layout */
-.game-container {
-  animation: fadeInUp 0.8s ease-out;
+input:focus {
+  border-color: var(--x-color);
+  background: rgba(255, 255, 255, 0.15);
 }
 
+#error-msg {
+  color: var(--o-color);
+  font-size: 0.85rem;
+  min-height: 1.2rem;
+  margin: 10px 0;
+  font-weight: bold;
+}
+
+/* The Beautiful Start Button */
+#start-game-btn {
+  background: linear-gradient(135deg, var(--x-color), #764ba2);
+  color: white;
+  border: none;
+  padding: 14px 40px;
+  border-radius: 50px;
+  font-size: 1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(0, 242, 254, 0.3);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  position: relative;
+  overflow: hidden;
+  margin-top: 10px;
+}
+
+#start-game-btn:hover {
+  transform: scale(1.05) translateY(-3px);
+  box-shadow: 0 8px 25px rgba(0, 242, 254, 0.5);
+}
+
+#start-game-btn::after {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -60%;
+  width: 20%;
+  height: 200%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: rotate(30deg);
+  transition: all 0.6s ease;
+}
+
+#start-game-btn:hover::after {
+  left: 120%;
+}
+
+/* Game Arena */
 .hidden {
   display: none;
+}
+.game-container {
+  animation: fadeInUp 0.6s ease-out;
 }
 
 .score-tracker {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 30px;
+  gap: 40px;
   margin-bottom: 20px;
 }
 
-.score-box {
-  text-align: center;
-  min-width: 100px;
-}
-
-.score-box span {
-  font-size: 0.9rem;
-  opacity: 0.7;
-  letter-spacing: 1px;
-}
 .score-box div {
-  font-size: 2.5rem;
-  font-weight: bold;
+  font-size: 3rem;
+  font-weight: 800;
+}
+.score-box span {
+  font-size: 0.8rem;
+  opacity: 0.6;
+  text-transform: uppercase;
 }
 
 .game-card {
   background: var(--glass-bg);
   backdrop-filter: blur(15px);
   border: 1px solid var(--glass-border);
-  border-radius: 24px;
+  border-radius: 28px;
   padding: 30px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+}
+
+#status {
+  margin-bottom: 20px;
+  font-size: 1.2rem;
+  font-weight: 500;
   text-align: center;
 }
 
 .board {
   display: grid;
   grid-template-columns: repeat(3, 100px);
-  gap: 15px;
+  gap: 12px;
   margin: 20px 0;
 }
 
 .cell {
   width: 100px;
   height: 100px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 16px;
   display: flex;
   justify-content: center;
   align-items: center;
-  font-size: 2.5rem;
+  font-size: 2.8rem;
   cursor: pointer;
   transition: 0.2s;
+  border: 1px solid var(--glass-border);
 }
 
 .cell:hover {
   background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
 }
 .cell.x {
   color: var(--x-color);
@@ -138,22 +195,41 @@ input {
   text-shadow: 0 0 15px var(--o-color);
 }
 
-button {
-  background: transparent;
-  border: 1px solid white;
+/* Centered Reset Button */
+#restartBtn {
+  display: block;
+  margin: 0 auto;
+  background: rgba(255, 255, 255, 0.1);
   color: white;
+  border: 1px solid var(--glass-border);
   padding: 10px 25px;
-  border-radius: 50px;
+  border-radius: 12px;
   cursor: pointer;
   transition: 0.3s;
 }
 
-button:hover {
+#restartBtn:hover {
   background: white;
-  color: #302b63;
+  color: #0f0c29;
 }
 
 .winner-cell {
-  background: rgba(255, 255, 255, 0.2) !important;
-  transform: scale(1.05);
+  background: rgba(255, 255, 255, 0.15) !important;
+  animation: pulse 1s infinite alternate;
+}
+
+@keyframes pulse {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.05);
+  }
+}
+
+.tip {
+  display: block;
+  margin-top: 15px;
+  opacity: 0.5;
+  font-size: 0.75rem;
 }

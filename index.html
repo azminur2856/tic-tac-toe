@@ -9,20 +9,29 @@
   <body>
     <div id="setup-overlay" class="overlay">
       <div class="setup-card">
-        <h2>Enter Player Names</h2>
-        <input
-          type="text"
-          id="p1-input"
-          placeholder="Player X Name"
-          autocomplete="off"
-        />
-        <input
-          type="text"
-          id="p2-input"
-          placeholder="Player O Name"
-          autocomplete="off"
-        />
+        <h2>Tic Tac Toe</h2>
+        <p>Enter player names to begin</p>
+        <div class="input-group">
+          <input
+            type="text"
+            id="p1-input"
+            placeholder="Player X Name"
+            maxlength="15"
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <input
+            type="text"
+            id="p2-input"
+            placeholder="Player O Name"
+            maxlength="15"
+            autocomplete="off"
+            spellcheck="false"
+          />
+        </div>
+        <p id="error-msg"></p>
         <button id="start-game-btn">Start Match</button>
+        <small class="tip">Press Enter to jump boxes or start</small>
       </div>
     </div>
 
@@ -52,7 +61,7 @@
           <div class="cell" data-index="7"></div>
           <div class="cell" data-index="8"></div>
         </div>
-        <button id="restartBtn">Reset Match</button>
+        <button id="restartBtn">Reset Round</button>
       </div>
     </div>
 
