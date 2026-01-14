@@ -8,7 +8,25 @@ const errorMsg = document.getElementById("error-msg");
 const cells = document.querySelectorAll(".cell");
 const statusDisplay = document.getElementById("status");
 const restartBtn = document.getElementById("restartBtn");
+const audioBtn = document.getElementById("audio-toggle");
 
+// --- AUDIO CONFIGURATION ---
+const sounds = {
+  start: new Audio(
+    "https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3"
+  ),
+  move: new Audio(
+    "https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3"
+  ),
+  win: new Audio(
+    "https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3"
+  ),
+  draw: new Audio(
+    "https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3"
+  ),
+};
+
+let isMuted = false;
 let player1 = { name: "", score: 0 };
 let player2 = { name: "", score: 0 };
 let currentPlayer = "X";
@@ -26,8 +44,21 @@ const winningConditions = [
   [2, 4, 6],
 ];
 
-// --- SMART FOCUS & ENTER KEY LOGIC ---
+// Helper to play sounds
+function playSound(name) {
+  if (!isMuted && sounds[name]) {
+    sounds[name].currentTime = 0;
+    sounds[name].play().catch(() => {});
+  }
+}
 
+// Audio Toggle Logic
+audioBtn.addEventListener("click", () => {
+  isMuted = !isMuted;
+  audioBtn.innerText = isMuted ? "🔇" : "🔊";
+});
+
+// --- FOCUS & ENTER KEY LOGIC ---
 p1Input.addEventListener("keydown", (e) => {
   if (e.key === "Enter") {
     e.preventDefault();
@@ -66,6 +97,7 @@ function initGame() {
     return;
   }
 
+  playSound("start");
   player1.name = n1;
   player2.name = n2;
 
@@ -78,11 +110,11 @@ function initGame() {
 }
 
 // --- GAMEPLAY LOGIC ---
-
 function handleCellClick(e) {
   const index = e.target.getAttribute("data-index");
   if (gameState[index] !== "" || !gameActive) return;
 
+  playSound("move");
   gameState[index] = currentPlayer;
   e.target.innerText = currentPlayer;
   e.target.classList.add(currentPlayer.toLowerCase());
@@ -113,19 +145,20 @@ function checkResult() {
   }
 
   if (roundWon) {
+    playSound("win");
     const winner = currentPlayer === "X" ? player1 : player2;
     statusDisplay.innerText = `${winner.name} Wins! 🎉`;
     winner.score++;
     document.getElementById(
       `p${currentPlayer === "X" ? 1 : 2}-score`
     ).innerText = winner.score;
-
     winningCombo.forEach((idx) => cells[idx].classList.add("winner-cell"));
     gameActive = false;
     return;
   }
 
   if (!gameState.includes("")) {
+    playSound("draw");
     statusDisplay.innerText = "It's a Draw! 🤝";
     gameActive = false;
     return;

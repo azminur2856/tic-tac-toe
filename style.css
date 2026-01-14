@@ -19,18 +19,7 @@ body {
   overflow: hidden;
 }
 
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Setup Screen */
+/* Setup Screen Overlay */
 .overlay {
   position: fixed;
   inset: 0;
@@ -79,7 +68,7 @@ input:focus {
   font-weight: bold;
 }
 
-/* The Beautiful Start Button */
+/* Buttons */
 #start-game-btn {
   background: linear-gradient(135deg, var(--x-color), #764ba2);
   color: white;
@@ -103,28 +92,37 @@ input:focus {
   box-shadow: 0 8px 25px rgba(0, 242, 254, 0.5);
 }
 
-#start-game-btn::after {
-  content: "";
+/* Audio Controls */
+.audio-controls {
   position: absolute;
-  top: -50%;
-  left: -60%;
-  width: 20%;
-  height: 200%;
-  background: rgba(255, 255, 255, 0.3);
-  transform: rotate(30deg);
-  transition: all 0.6s ease;
+  top: 20px;
+  right: 20px;
+  z-index: 10;
 }
 
-#start-game-btn:hover::after {
-  left: 120%;
+.icon-btn {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  color: white;
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1.2rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: 0.3s;
 }
 
-/* Game Arena */
+/* Game Board */
+.game-container {
+  position: relative;
+  animation: fadeInUp 0.6s ease-out;
+}
+
 .hidden {
   display: none;
-}
-.game-container {
-  animation: fadeInUp 0.6s ease-out;
 }
 
 .score-tracker {
@@ -216,6 +214,17 @@ input:focus {
 .winner-cell {
   background: rgba(255, 255, 255, 0.15) !important;
   animation: pulse 1s infinite alternate;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes pulse {
