@@ -25,7 +25,7 @@ let player2 = { name: "", score: 0 };
 let currentPlayer = "X";
 let gameState = ["", "", "", "", "", "", "", "", ""];
 let gameActive = true;
-let gameMode = "pvp"; // 'pvp' or 'pvc'
+let gameMode = "pvc"; // 'pvp' or 'pvc'
 
 const winningConditions = [
   [0, 1, 2],

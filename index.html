@@ -22,11 +22,11 @@
           "
         >
           <label style="cursor: pointer">
-            <input type="radio" name="game-mode" value="pvp" checked /> 2
-            Players
+            <input type="radio" name="game-mode" value="pvc" checked /> Vs
+            Machine
           </label>
           <label style="cursor: pointer">
-            <input type="radio" name="game-mode" value="pvc" /> Vs Machine
+            <input type="radio" name="game-mode" value="pvp" /> 2 Players
           </label>
         </div>
 
@@ -44,6 +44,8 @@
             placeholder="Player O Name"
             maxlength="15"
             autocomplete="off"
+            style="display: none"
+            value="Machine"
           />
         </div>
         <p id="error-msg"></p>
