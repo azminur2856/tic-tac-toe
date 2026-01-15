@@ -135,6 +135,7 @@ async function initGame() {
       errorMsg.innerText = "Room ID required!";
       return;
     }
+    document.getElementById("current-room-id").innerText = roomID;
     const action = joinCheckbox.checked ? "join" : "create";
     try {
       const resp = await fetch(SCRIPT_URL, {
@@ -156,6 +157,8 @@ async function initGame() {
       errorMsg.innerText = "Connection Failed!";
       return;
     }
+  } else {
+    document.getElementById("active-room-display").style.display = "none";
   }
 
   playSound("start");
