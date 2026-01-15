@@ -180,9 +180,9 @@ function handleCellClick(e) {
   if (gameState[index] !== "" || !gameActive) return;
   if (isOnline && currentPlayer !== playerSymbol) return;
 
-  executeMove(index);
-
   if (isOnline) {
+    // Optimistic UI update (optional, but makes it feel faster)
+    executeMove(index);
     fetch(SCRIPT_URL, {
       method: "POST",
       body: JSON.stringify({
@@ -192,8 +192,11 @@ function handleCellClick(e) {
         symbol: playerSymbol,
       }),
     });
-  } else if (gameActive && gameMode === "pvc" && currentPlayer === "O") {
-    setTimeout(advancedCPUMove, 600);
+  } else {
+    executeMove(index);
+    if (gameActive && gameMode === "pvc" && currentPlayer === "O") {
+      setTimeout(advancedCPUMove, 600);
+    }
   }
 }
 
@@ -212,26 +215,35 @@ function startPolling() {
   if (pollingInterval) clearInterval(pollingInterval);
   pollingInterval = setInterval(async () => {
     try {
+      // Use cache-busting and faster interval (800ms)
       const resp = await fetch(
         `${SCRIPT_URL}?roomID=${roomID}&t=${Date.now()}`
       );
       const data = await resp.json();
+
       if (!data || !data.gameState) return;
+
+      // Only update if the server timestamp has changed
       if (data.lastMove > lastUpdate) {
         lastUpdate = data.lastMove;
         syncGame(data);
       }
-    } catch (e) {}
-  }, 1500);
+    } catch (e) {
+      console.error("Sync error");
+    }
+  }, 800);
 }
 
 function syncGame(data) {
+  // Sync names
   if (player1.name !== data.player1 || player2.name !== data.player2) {
     player1.name = data.player1;
     player2.name = data.player2;
     document.getElementById("p1-name-display").innerText = player1.name;
     document.getElementById("p2-name-display").innerText = player2.name;
   }
+
+  // Sync Board
   data.gameState.forEach((val, idx) => {
     if (val !== gameState[idx]) {
       gameState[idx] = val;
@@ -240,9 +252,34 @@ function syncGame(data) {
       if (val !== "") playSound(val === "X" ? "moveX" : "moveO");
     }
   });
+
   currentPlayer = data.currentPlayer;
   updateStatusText();
-  checkResult();
+
+  // SYNC WINNER STATE FROM SERVER
+  if (data.gameActive === false) {
+    gameActive = false;
+    clearInterval(pollingInterval);
+
+    if (data.winner === "Draw") {
+      playSound("draw");
+      statusDisplay.innerText = "It's a Draw! 🤝";
+    } else if (data.winner) {
+      playSound("win");
+      const winnerName = data.winner === "X" ? data.player1 : data.player2;
+      statusDisplay.innerText = `${winnerName} Wins! 🎉`;
+
+      // Update scores
+      const scoreId = `p${data.winner === "X" ? 1 : 2}-score`;
+      document.getElementById(scoreId).innerText =
+        parseInt(document.getElementById(scoreId).innerText) + 1;
+
+      // Highlight cells
+      data.winningCombo.forEach((idx) =>
+        cells[idx].classList.add("winner-cell")
+      );
+    }
+  }
 }
 
 // --- MINIMAX AI ---
