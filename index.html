@@ -18,7 +18,8 @@
             margin-bottom: 20px;
             display: flex;
             justify-content: center;
-            gap: 20px;
+            gap: 15px;
+            flex-wrap: wrap;
           "
         >
           <label style="cursor: pointer">
@@ -28,16 +29,20 @@
           <label style="cursor: pointer">
             <input type="radio" name="game-mode" value="pvp" /> 2 Players
           </label>
+          <label style="cursor: pointer">
+            <input type="radio" name="game-mode" value="online" /> Online
+          </label>
         </div>
 
         <div class="input-group">
           <input
             type="text"
             id="p1-input"
-            placeholder="Player X Name"
+            placeholder="Your Name"
             maxlength="15"
             autocomplete="off"
           />
+
           <input
             type="text"
             id="p2-input"
@@ -47,6 +52,45 @@
             style="display: none"
             value="Machine"
           />
+
+          <div id="online-fields" style="display: none; margin-top: 15px">
+            <label
+              style="
+                font-size: 0.8rem;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                margin-bottom: 10px;
+              "
+            >
+              <input
+                type="checkbox"
+                id="join-checkbox"
+                style="width: auto; margin: 0"
+              />
+              I want to join an existing room
+            </label>
+
+            <div id="room-id-container">
+              <span
+                id="generated-room-msg"
+                style="font-size: 0.8rem; color: var(--x-color)"
+                >Room ID will be generated</span
+              >
+              <input
+                type="text"
+                id="room-id-input"
+                placeholder="Room ID"
+                readonly
+                style="
+                  text-align: center;
+                  letter-spacing: 2px;
+                  background: rgba(0, 0, 0, 0.2);
+                "
+              />
+            </div>
+          </div>
         </div>
         <p id="error-msg"></p>
         <button id="start-game-btn">Start Match</button>

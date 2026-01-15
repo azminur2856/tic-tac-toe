@@ -4,13 +4,18 @@ const startBtn = document.getElementById("start-game-btn");
 const p1Input = document.getElementById("p1-input");
 const p2Input = document.getElementById("p2-input");
 const errorMsg = document.getElementById("error-msg");
+const joinCheckbox = document.getElementById("join-checkbox");
+const roomInput = document.getElementById("room-id-input");
+const roomMsg = document.getElementById("generated-room-msg");
 
 const cells = document.querySelectorAll(".cell");
 const statusDisplay = document.getElementById("status");
 const restartBtn = document.getElementById("restartBtn");
 const audioBtn = document.getElementById("audio-toggle");
 
-// --- AUDIO CONFIGURATION ---
+const SCRIPT_URL =
+  "https://script.google.com/macros/s/AKfycbytxEhCxemJgqGBUMdOjwUTi_E2AkssjsqKZ3WU2wmj0itjK4FgCGtFECZ0_pAOULHkeQ/exec";
+
 const sounds = {
   start: new Audio("assets/start.mp3"),
   moveX: new Audio("assets/moveX.mp3"),
@@ -19,13 +24,19 @@ const sounds = {
   draw: new Audio("assets/draw.mp3"),
 };
 
+// --- STATE ---
 let isMuted = false;
 let player1 = { name: "", score: 0 };
 let player2 = { name: "", score: 0 };
 let currentPlayer = "X";
 let gameState = ["", "", "", "", "", "", "", "", ""];
 let gameActive = true;
-let gameMode = "pvc"; // 'pvp' or 'pvc'
+let gameMode = "pvc";
+let roomID = "";
+let playerSymbol = "X";
+let isOnline = false;
+let pollingInterval = null;
+let lastUpdate = 0;
 
 const winningConditions = [
   [0, 1, 2],
@@ -38,6 +49,7 @@ const winningConditions = [
   [2, 4, 6],
 ];
 
+// --- AUDIO ---
 function playSound(name) {
   if (!isMuted && sounds[name]) {
     sounds[name].currentTime = 0;
@@ -50,19 +62,41 @@ audioBtn.addEventListener("click", () => {
   audioBtn.innerText = isMuted ? "🔇" : "🔊";
 });
 
-// --- SETUP LOGIC ---
+// --- MODE SWITCHING ---
 document.querySelectorAll('input[name="game-mode"]').forEach((radio) => {
   radio.addEventListener("change", (e) => {
     gameMode = e.target.value;
-    if (gameMode === "pvc") {
-      p2Input.style.display = "none";
-      p2Input.value = "Machine";
+    isOnline = gameMode === "online";
+    p2Input.style.display = gameMode === "pvp" ? "block" : "none";
+    document.getElementById("online-fields").style.display = isOnline
+      ? "block"
+      : "none";
+
+    if (isOnline) {
+      prepareOnlineFields();
     } else {
-      p2Input.style.display = "block";
-      p2Input.value = "";
+      if (gameMode === "pvc") p2Input.value = "Machine";
+      if (gameMode === "pvp") p2Input.value = "";
+      if (pollingInterval) clearInterval(pollingInterval);
     }
   });
 });
+
+function prepareOnlineFields() {
+  if (joinCheckbox.checked) {
+    roomInput.readOnly = false;
+    roomInput.value = "";
+    roomInput.placeholder = "Enter Room ID";
+    roomMsg.innerText = "Enter the ID shared by Player 1";
+    playerSymbol = "O";
+  } else {
+    roomInput.readOnly = true;
+    roomID = Math.random().toString(36).substring(2, 8).toUpperCase();
+    roomInput.value = roomID;
+    roomMsg.innerText = "Share this Room ID with your friend:";
+    playerSymbol = "X";
+  }
+}
 
 p1Input.addEventListener("keydown", (e) => {
   if (e.key === "Enter") {
@@ -84,20 +118,53 @@ p2Input.addEventListener("keydown", (e) => {
   }
 });
 
+joinCheckbox.addEventListener("change", prepareOnlineFields);
+
 startBtn.addEventListener("click", initGame);
 
-function initGame() {
+async function initGame() {
   const n1 = p1Input.value.trim();
-  const n2 = p2Input.value.trim();
-
-  if (!n1 || !n2) {
-    errorMsg.innerText = "Names are required!";
+  if (!n1) {
+    errorMsg.innerText = "Name is required!";
     return;
   }
 
+  if (isOnline) {
+    roomID = roomInput.value.trim().toUpperCase();
+    if (!roomID) {
+      errorMsg.innerText = "Room ID required!";
+      return;
+    }
+    const action = joinCheckbox.checked ? "join" : "create";
+    try {
+      const resp = await fetch(SCRIPT_URL, {
+        method: "POST",
+        body: JSON.stringify({
+          action,
+          roomID,
+          playerName: n1,
+          symbol: playerSymbol,
+        }),
+      });
+      const result = await resp.json();
+      if (!result.success) {
+        errorMsg.innerText = result.message || "Room Error!";
+        return;
+      }
+      startPolling();
+    } catch (e) {
+      errorMsg.innerText = "Connection Failed!";
+      return;
+    }
+  }
+
   playSound("start");
-  player1.name = n1;
-  player2.name = n2;
+  player1.name = isOnline ? (playerSymbol === "X" ? n1 : "Loading...") : n1;
+  player2.name = isOnline
+    ? playerSymbol === "O"
+      ? n1
+      : "Waiting..."
+    : p2Input.value;
 
   document.getElementById("p1-name-display").innerText = player1.name;
   document.getElementById("p2-name-display").innerText = player2.name;
@@ -107,33 +174,78 @@ function initGame() {
   updateStatusText();
 }
 
-// --- GAMEPLAY LOGIC ---
+// --- GAMEPLAY ---
 function handleCellClick(e) {
   const index = e.target.getAttribute("data-index");
   if (gameState[index] !== "" || !gameActive) return;
+  if (isOnline && currentPlayer !== playerSymbol) return;
 
-  // Human Move
   executeMove(index);
 
-  // Machine Move logic (Calling the Advanced Minimax Move)
-  if (gameActive && gameMode === "pvc" && currentPlayer === "O") {
+  if (isOnline) {
+    fetch(SCRIPT_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        action: "move",
+        roomID,
+        index,
+        symbol: playerSymbol,
+      }),
+    });
+  } else if (gameActive && gameMode === "pvc" && currentPlayer === "O") {
     setTimeout(advancedCPUMove, 600);
   }
 }
 
 function executeMove(index) {
-  if (currentPlayer === "X") playSound("moveX");
-  else playSound("moveO");
-
-  gameState[index] = currentPlayer;
-  const cell = document.querySelector(`[data-index="${index}"]`);
-  cell.innerText = currentPlayer;
-  cell.classList.add(currentPlayer.toLowerCase());
-
+  const symbol = currentPlayer;
+  gameState[index] = symbol;
+  const cell = cells[index];
+  cell.innerText = symbol;
+  cell.classList.add(symbol.toLowerCase());
+  playSound(symbol === "X" ? "moveX" : "moveO");
   checkResult();
 }
 
-// --- UNBEATABLE MINIMAX ALGORITHM ---
+// --- ONLINE SYNC ---
+function startPolling() {
+  if (pollingInterval) clearInterval(pollingInterval);
+  pollingInterval = setInterval(async () => {
+    try {
+      const resp = await fetch(
+        `${SCRIPT_URL}?roomID=${roomID}&t=${Date.now()}`
+      );
+      const data = await resp.json();
+      if (!data || !data.gameState) return;
+      if (data.lastMove > lastUpdate) {
+        lastUpdate = data.lastMove;
+        syncGame(data);
+      }
+    } catch (e) {}
+  }, 1500);
+}
+
+function syncGame(data) {
+  if (player1.name !== data.player1 || player2.name !== data.player2) {
+    player1.name = data.player1;
+    player2.name = data.player2;
+    document.getElementById("p1-name-display").innerText = player1.name;
+    document.getElementById("p2-name-display").innerText = player2.name;
+  }
+  data.gameState.forEach((val, idx) => {
+    if (val !== gameState[idx]) {
+      gameState[idx] = val;
+      cells[idx].innerText = val;
+      cells[idx].className = `cell ${val.toLowerCase()}`;
+      if (val !== "") playSound(val === "X" ? "moveX" : "moveO");
+    }
+  });
+  currentPlayer = data.currentPlayer;
+  updateStatusText();
+  checkResult();
+}
+
+// --- MINIMAX AI ---
 function advancedCPUMove() {
   let bestScore = -Infinity;
   let move;
@@ -156,15 +268,13 @@ function minimax(board, depth, isMaximizing) {
   if (result === "O") return 10 - depth;
   if (result === "X") return depth - 10;
   if (!board.includes("")) return 0;
-
   if (isMaximizing) {
     let bestScore = -Infinity;
     for (let i = 0; i < 9; i++) {
       if (board[i] === "") {
         board[i] = "O";
-        let score = minimax(board, depth + 1, false);
+        bestScore = Math.max(minimax(board, depth + 1, false), bestScore);
         board[i] = "";
-        bestScore = Math.max(score, bestScore);
       }
     }
     return bestScore;
@@ -173,9 +283,8 @@ function minimax(board, depth, isMaximizing) {
     for (let i = 0; i < 9; i++) {
       if (board[i] === "") {
         board[i] = "X";
-        let score = minimax(board, depth + 1, true);
+        bestScore = Math.min(minimax(board, depth + 1, true), bestScore);
         board[i] = "";
-        bestScore = Math.min(score, bestScore);
       }
     }
     return bestScore;
@@ -196,6 +305,10 @@ function checkWinnerRaw() {
 }
 
 function updateStatusText() {
+  if (isOnline && player2.name === "Waiting...") {
+    statusDisplay.innerText = "Waiting for Opponent...";
+    return;
+  }
   const name = currentPlayer === "X" ? player1.name : player2.name;
   statusDisplay.innerText = `${name}'s Turn (${currentPlayer})`;
 }
@@ -203,7 +316,6 @@ function updateStatusText() {
 function checkResult() {
   let roundWon = false;
   let winningCombo = [];
-
   for (let condition of winningConditions) {
     let [a, b, c] = condition;
     if (
@@ -216,9 +328,10 @@ function checkResult() {
       break;
     }
   }
-
   if (roundWon) {
     playSound("win");
+    gameActive = false;
+    if (isOnline) clearInterval(pollingInterval);
     const winner = currentPlayer === "X" ? player1 : player2;
     statusDisplay.innerText = `${winner.name} Wins! 🎉`;
     winner.score++;
@@ -226,22 +339,23 @@ function checkResult() {
       `p${currentPlayer === "X" ? 1 : 2}-score`
     ).innerText = winner.score;
     winningCombo.forEach((idx) => cells[idx].classList.add("winner-cell"));
-    gameActive = false;
     return;
   }
-
   if (!gameState.includes("")) {
     playSound("draw");
-    statusDisplay.innerText = "It's a Draw! 🤝";
     gameActive = false;
+    if (isOnline) clearInterval(pollingInterval);
+    statusDisplay.innerText = "It's a Draw! 🤝";
     return;
   }
-
-  currentPlayer = currentPlayer === "X" ? "O" : "X";
-  updateStatusText();
+  if (!isOnline) {
+    currentPlayer = currentPlayer === "X" ? "O" : "X";
+    updateStatusText();
+  }
 }
 
 function resetBoard() {
+  if (isOnline) return;
   currentPlayer = "X";
   gameState = ["", "", "", "", "", "", "", "", ""];
   gameActive = true;
