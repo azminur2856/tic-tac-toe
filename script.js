@@ -235,7 +235,6 @@ function startPolling() {
   if (pollingInterval) clearInterval(pollingInterval);
   pollingInterval = setInterval(async () => {
     try {
-      // Use cache-busting and faster interval (800ms)
       const resp = await fetch(
         `${SCRIPT_URL}?roomID=${roomID}&t=${Date.now()}`
       );
@@ -243,8 +242,15 @@ function startPolling() {
 
       if (!data || !data.gameState) return;
 
-      // Only update if the server timestamp has changed
-      if (data.lastMove > lastUpdate) {
+      // Check if room was deleted or marked inactive
+      if (data.status === "inactive") {
+        alert("The other player has left. Room is now closed.");
+        window.location.reload();
+        return;
+      }
+
+      // Sync if server data is newer or if we are currently inactive and server is active (Reset detection)
+      if (data.lastMove > lastUpdate || (!gameActive && data.gameActive)) {
         lastUpdate = data.lastMove;
         syncGame(data);
       }
@@ -255,7 +261,15 @@ function startPolling() {
 }
 
 function syncGame(data) {
-  // Sync names
+  // 1. Sync scores based on history length
+  if (data.history) {
+    const p1Wins = data.history.filter((h) => h.winner === "X").length;
+    const p2Wins = data.history.filter((h) => h.winner === "O").length;
+    document.getElementById("p1-score").innerText = p1Wins;
+    document.getElementById("p2-score").innerText = p2Wins;
+  }
+
+  // 2. Sync Names
   if (player1.name !== data.player1 || player2.name !== data.player2) {
     player1.name = data.player1;
     player2.name = data.player2;
@@ -263,41 +277,35 @@ function syncGame(data) {
     document.getElementById("p2-name-display").innerText = player2.name;
   }
 
-  // Sync Board
+  // 3. Sync Board
   data.gameState.forEach((val, idx) => {
-    if (val !== gameState[idx]) {
-      gameState[idx] = val;
-      cells[idx].innerText = val;
+    gameState[idx] = val;
+    cells[idx].innerText = val;
+    // Remove winner-cell class if the board was reset
+    if (val === "") {
+      cells[idx].className = "cell";
+    } else {
       cells[idx].className = `cell ${val.toLowerCase()}`;
-      if (val !== "") playSound(val === "X" ? "moveX" : "moveO");
     }
   });
 
+  // 4. Update Game State
+  gameActive = data.gameActive;
   currentPlayer = data.currentPlayer;
-  updateStatusText();
 
-  // SYNC WINNER STATE FROM SERVER
-  if (data.gameActive === false) {
-    gameActive = false;
-    clearInterval(pollingInterval);
-
+  if (gameActive) {
+    updateStatusText();
+  } else {
     if (data.winner === "Draw") {
-      playSound("draw");
       statusDisplay.innerText = "It's a Draw! 🤝";
     } else if (data.winner) {
-      playSound("win");
       const winnerName = data.winner === "X" ? data.player1 : data.player2;
-      statusDisplay.innerText = `${winnerName} Wins! 🎉`;
-
-      // Update scores
-      const scoreId = `p${data.winner === "X" ? 1 : 2}-score`;
-      document.getElementById(scoreId).innerText =
-        parseInt(document.getElementById(scoreId).innerText) + 1;
-
-      // Highlight cells
-      data.winningCombo.forEach((idx) =>
-        cells[idx].classList.add("winner-cell")
-      );
+      statusDisplay.innerText = `${winnerName} Wins! 🏆`;
+      if (data.winningCombo) {
+        data.winningCombo.forEach((idx) =>
+          cells[idx].classList.add("winner-cell")
+        );
+      }
     }
   }
 }
@@ -385,43 +393,74 @@ function checkResult() {
       break;
     }
   }
+
   if (roundWon) {
     playSound("win");
     gameActive = false;
-    if (isOnline) clearInterval(pollingInterval);
+    //if (isOnline) clearInterval(pollingInterval); // Keep polling to allow rematch or reset
     const winner = currentPlayer === "X" ? player1 : player2;
     statusDisplay.innerText = `${winner.name} Wins! 🎉`;
-    winner.score++;
-    document.getElementById(
-      `p${currentPlayer === "X" ? 1 : 2}-score`
-    ).innerText = winner.score;
+
+    if (!isOnline) {
+      winner.score++;
+      document.getElementById(
+        `p${currentPlayer === "X" ? 1 : 2}-score`
+      ).innerText = winner.score;
+    }
+
     winningCombo.forEach((idx) => cells[idx].classList.add("winner-cell"));
     return;
   }
+
   if (!gameState.includes("")) {
     playSound("draw");
     gameActive = false;
-    if (isOnline) clearInterval(pollingInterval);
     statusDisplay.innerText = "It's a Draw! 🤝";
     return;
   }
+
   if (!isOnline) {
     currentPlayer = currentPlayer === "X" ? "O" : "X";
     updateStatusText();
   }
 }
 
-function resetBoard() {
-  if (isOnline) return;
-  currentPlayer = "X";
-  gameState = ["", "", "", "", "", "", "", "", ""];
-  gameActive = true;
-  updateStatusText();
-  cells.forEach((cell) => {
-    cell.innerText = "";
-    cell.className = "cell";
-  });
+async function resetBoard() {
+  if (isOnline) {
+    // In online mode, tell the server to reset
+    await fetch(SCRIPT_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        action: "reset",
+        roomID: roomID,
+      }),
+    });
+  } else {
+    // Local mode reset
+    currentPlayer = "X";
+    gameState = ["", "", "", "", "", "", "", "", ""];
+    gameActive = true;
+    updateStatusText();
+    cells.forEach((cell) => {
+      cell.innerText = "";
+      cell.className = "cell";
+    });
+  }
 }
+
+window.addEventListener("beforeunload", () => {
+  if (isOnline && roomID) {
+    // Send a final request to mark room as inactive
+    fetch(SCRIPT_URL, {
+      method: "POST",
+      keepalive: true,
+      body: JSON.stringify({
+        action: "leave",
+        roomID: roomID,
+      }),
+    });
+  }
+});
 
 cells.forEach((cell) => cell.addEventListener("click", handleCellClick));
 restartBtn.addEventListener("click", resetBoard);
