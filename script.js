@@ -16,6 +16,16 @@ const audioBtn = document.getElementById("audio-toggle");
 const SCRIPT_URL =
   "https://script.google.com/macros/s/AKfycbytxEhCxemJgqGBUMdOjwUTi_E2AkssjsqKZ3WU2wmj0itjK4FgCGtFECZ0_pAOULHkeQ/exec";
 
+// Initialize Firebase using only the public URL
+const firebaseConfig = {
+  databaseURL:
+    "https://elite-tic-tac-toe-default-rtdb.asia-southeast1.firebasedatabase.app",
+};
+
+// This will now work because you added the tags in index.html
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
 const sounds = {
   start: new Audio("assets/start.mp3"),
   moveX: new Audio("assets/moveX.mp3"),
@@ -169,7 +179,7 @@ async function initGame() {
         errorMsg.innerText = result.message || "Room Error!";
         return;
       }
-      startPolling();
+      startListening(roomID);
     } catch (e) {
       errorMsg.innerText = "Connection Failed!";
       return;
@@ -230,34 +240,29 @@ function executeMove(index) {
   checkResult();
 }
 
-// --- ONLINE SYNC ---
-function startPolling() {
+function startListening(roomID) {
+  // Clear any old polling intervals
   if (pollingInterval) clearInterval(pollingInterval);
-  pollingInterval = setInterval(async () => {
-    try {
-      const resp = await fetch(
-        `${SCRIPT_URL}?roomID=${roomID}&t=${Date.now()}`
-      );
-      const data = await resp.json();
 
-      if (!data || !data.gameState) return;
+  const roomRef = db.ref("rooms/" + roomID);
 
-      // Check if room was deleted or marked inactive
-      if (data.status === "inactive") {
-        alert("The other player has left. Room is now closed.");
-        window.location.reload();
-        return;
-      }
+  // This replaces the "continuous GET".
+  // It only triggers when a change occurs in the database.
+  roomRef.on("value", (snapshot) => {
+    const data = snapshot.val();
+    if (!data) return;
 
-      // Sync if server data is newer or if we are currently inactive and server is active (Reset detection)
-      if (data.lastMove > lastUpdate || (!gameActive && data.gameActive)) {
-        lastUpdate = data.lastMove;
-        syncGame(data);
-      }
-    } catch (e) {
-      console.error("Sync error");
+    // Security Check: If the room is marked inactive by the Apps Script
+    if (data.status === "inactive") {
+      roomRef.off(); // Stop listening
+      alert("Room closed.");
+      window.location.reload();
+      return;
     }
-  }, 800);
+
+    // Pass data to your existing sync function
+    syncGame(data);
+  });
 }
 
 function syncGame(data) {
@@ -397,7 +402,6 @@ function checkResult() {
   if (roundWon) {
     playSound("win");
     gameActive = false;
-    //if (isOnline) clearInterval(pollingInterval); // Keep polling to allow rematch or reset
     const winner = currentPlayer === "X" ? player1 : player2;
     statusDisplay.innerText = `${winner.name} Wins! 🎉`;
 
