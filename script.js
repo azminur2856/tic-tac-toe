@@ -84,16 +84,19 @@ document.querySelectorAll('input[name="game-mode"]').forEach((radio) => {
 
 function prepareOnlineFields() {
   if (joinCheckbox.checked) {
+    roomInput.style.display = "block";
     roomInput.readOnly = false;
     roomInput.value = "";
     roomInput.placeholder = "Enter Room ID";
     roomMsg.innerText = "Enter the ID shared by Player 1";
     playerSymbol = "O";
   } else {
+    roomInput.style.display = "none";
     roomInput.readOnly = true;
     roomID = Math.random().toString(36).substring(2, 8).toUpperCase();
     roomInput.value = roomID;
-    roomMsg.innerText = "Share this Room ID with your friend:";
+    roomMsg.innerText =
+      "Room ID will be auto generated. After start match, share it with your friend.";
     playerSymbol = "X";
   }
 }
@@ -101,10 +104,17 @@ function prepareOnlineFields() {
 p1Input.addEventListener("keydown", (e) => {
   if (e.key === "Enter") {
     e.preventDefault();
-    if (p1Input.value.trim() === "") {
-      errorMsg.innerText = "Please enter Player X's name!";
-    } else if (gameMode === "pvp") {
+    const name = p1Input.value.trim();
+
+    if (name === "") {
+      errorMsg.innerText = "Please enter your name!";
+      return;
+    }
+
+    if (gameMode === "pvp") {
       p2Input.focus();
+    } else if (isOnline && joinCheckbox.checked) {
+      roomInput.focus();
     } else {
       initGame();
     }
@@ -113,6 +123,13 @@ p1Input.addEventListener("keydown", (e) => {
 
 p2Input.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && gameMode === "pvp") {
+    e.preventDefault();
+    initGame();
+  }
+});
+
+roomInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && isOnline && joinCheckbox.checked) {
     e.preventDefault();
     initGame();
   }
